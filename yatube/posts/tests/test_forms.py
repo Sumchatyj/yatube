@@ -145,7 +145,7 @@ class CommentFormTests(TestCase):
             text="Тестовый комментарий",
         )
         cls.form = CommentForm()
-    
+
     def setUp(self):
         self.user_auth = Client()
         self.user_auth.force_login(CommentFormTests.user)
