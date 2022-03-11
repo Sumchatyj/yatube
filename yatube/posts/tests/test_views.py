@@ -4,15 +4,13 @@ import tempfile
 from django.core.cache import cache
 from django.conf import settings
 from django import forms
-from django.contrib.auth import get_user_model
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from datetime import datetime
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from posts.models import Post, Group, Follow
+from posts.models import Post, Group, User
 
-User = get_user_model()
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 SMALL_GIF = (
     b"\x47\x49\x46\x38\x39\x61\x02\x00"
@@ -207,56 +205,3 @@ class PostsPagesTest(TestCase):
         cache.clear()
         response_2 = PostsPagesTest.user_auth.get(reverse("posts:index"))
         self.assertNotEqual(response_1.content, response_2.content)
-
-
-class FollowerTest(TestCase):
-    """Проверка функционала подписок приложения posts."""
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.author_model = User.objects.create_user(username="author")
-        cls.follower_model = User.objects.create_user(username="follower")
-        cls.author = Client()
-        cls.author.force_login(cls.author_model)
-        cls.follower = Client()
-        cls.follower.force_login(cls.follower_model)
-
-    def test_follow_href(self):
-        """Проверка создания подписки при переходе по ссылке."""
-        FollowerTest.follower.get(
-            reverse(
-                "posts:profile_follow",
-                kwargs={"username": FollowerTest.author_model.username},
-            )
-        )
-        self.assertTrue(
-            Follow.objects.filter(user=FollowerTest.follower_model).exists()
-        )
-
-    def test_follow_post(self):
-        """Проверка появления поста в подписке."""
-        FollowerTest.follower.get(
-            reverse(
-                "posts:profile_follow",
-                kwargs={"username": FollowerTest.author_model.username},
-            )
-        )
-        Post.objects.create(
-            author=FollowerTest.author_model,
-            text="Тестовый текст",
-        )
-        response = FollowerTest.follower.get(reverse("posts:follow_index"))
-        object = response.context["page_obj"][0]
-        self.assertEqual(object.text, "Тестовый текст")
-        FollowerTest.follower.get(
-            reverse(
-                "posts:profile_unfollow",
-                kwargs={"username": FollowerTest.author_model.username},
-            )
-        )
-        response = FollowerTest.follower.get(reverse("posts:follow_index"))
-        try:
-            object = response.context["page_obj"][0]
-        except IndexError:
-            self.assertRaises(IndexError)

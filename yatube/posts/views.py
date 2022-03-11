@@ -35,6 +35,10 @@ def profile(request, username) -> None:
     paginator = Paginator(post_list.all(), POST_PER_PAGES)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
+    if str(request.user) == username:
+        owner = 1
+    else:
+        owner = 0
     if request.user.is_authenticated:
         following = Follow.objects.filter(
             user=request.user,
@@ -47,6 +51,7 @@ def profile(request, username) -> None:
         "post_count": post_count,
         "author": author,
         "following": following,
+        'owner': owner,
     }
     return render(request, template, context)
 

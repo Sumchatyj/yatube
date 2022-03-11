@@ -3,15 +3,13 @@ import tempfile
 
 from django.test import Client, TestCase, override_settings
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.urls import reverse
 from http import HTTPStatus
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from posts.forms import PostForm, CommentForm
-from posts.models import Post, Group, Comment
+from posts.models import Post, Group, Comment, User
 
-User = get_user_model()
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
 
@@ -163,6 +161,12 @@ class CommentFormTests(TestCase):
             data=form_data,
             follow=True,
         )
+        response_1 = CommentFormTests.user_auth.get(
+            reverse(
+                "posts:post_detail",
+                kwargs={"post_id": CommentFormTests.post.pk},
+            ),
+        )
         self.assertRedirects(
             response,
             reverse(
@@ -175,6 +179,10 @@ class CommentFormTests(TestCase):
             Comment.objects.filter(
                 text="тестовый комментарий, созданный в форме",
             ).exists()
+        )
+        self.assertEqual(
+            response_1.context.get('comments').last().text,
+            form_data["text"],
         )
 
     def test_create_comment_not_auth_user(self):

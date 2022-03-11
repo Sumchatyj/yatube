@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.db.models import UniqueConstraint
 
 from core.models import CreatedModel
 
@@ -33,11 +34,11 @@ class Post(CreatedModel):
     )
     image = models.ImageField("Картинка", upload_to="posts/", blank=True)
 
-    def __str__(self) -> str:
-        return self.text[:15]
-
     class Meta:
         ordering = ["-pub_date"]
+
+    def __str__(self) -> str:
+        return self.text[:15]
 
 
 class Comment(CreatedModel):
@@ -68,3 +69,8 @@ class Follow(models.Model):
         verbose_name="Автор",
         related_name="following",
     )
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(fields=["author", "user"], name="unique_follower")
+        ]
