@@ -21,9 +21,6 @@ class PostFormTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create_user(username="auth")
-        cls.user_auth = Client()
-        cls.user_auth.force_login(cls.user)
-        cls.user_not_auth = Client()
         cls.group = Group.objects.create(
             title="Тестовый заголовок",
             description="Тестовое описание",
@@ -41,6 +38,11 @@ class PostFormTests(TestCase):
     def tearDownClass(cls):
         super().tearDownClass()
         shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
+
+    def setUp(self):
+        self.user_auth = Client()
+        self.user_auth.force_login(PostFormTests.user)
+        self.user_not_auth = Client()
 
     def test_create_post(self):
         """Валидная форма создает запись в post."""
@@ -61,7 +63,7 @@ class PostFormTests(TestCase):
             "group": self.group.id,
             "image": uploaded,
         }
-        response = PostFormTests.user_auth.post(
+        response = self.user_auth.post(
             reverse("posts:post_create"), data=form_data, follow=True
         )
         self.assertRedirects(
@@ -86,7 +88,7 @@ class PostFormTests(TestCase):
             "text": "тестовый пост, отредактированный в форме",
             "group": self.group.id,
         }
-        response = PostFormTests.user_auth.post(
+        response = self.user_auth.post(
             reverse(
                 "posts:post_edit", kwargs={"post_id": PostFormTests.post.pk}
             ),
@@ -110,14 +112,14 @@ class PostFormTests(TestCase):
 
     def test_create_post_not_auth_user(self):
         """Неавторизованный клиент не может создать пост."""
-        response = PostFormTests.user_not_auth.get(
+        response = self.user_not_auth.get(
             reverse("posts:post_create")
         )
         self.assertEqual(response.status_code, HTTPStatus.FOUND)
 
     def test_edit_post_not_auth_user(self):
         """Неавторизованный клиент не может редактировать пост."""
-        response = PostFormTests.user_not_auth.get(
+        response = self.user_not_auth.get(
             reverse(
                 "posts:post_edit", kwargs={"post_id": PostFormTests.post.pk}
             )
@@ -132,9 +134,6 @@ class CommentFormTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create_user(username="auth")
-        cls.user_auth = Client()
-        cls.user_auth.force_login(cls.user)
-        cls.user_not_auth = Client()
         cls.post = Post.objects.create(
             author=cls.user,
             text="Тестовый пост длиннее 15 символов",
@@ -146,6 +145,11 @@ class CommentFormTests(TestCase):
             text="Тестовый комментарий",
         )
         cls.form = CommentForm()
+    
+    def setUp(self):
+        self.user_auth = Client()
+        self.user_auth.force_login(CommentFormTests.user)
+        self.user_not_auth = Client()
 
     def test_create_comment(self):
         """Валидная форма создает запись в comment."""
@@ -153,7 +157,7 @@ class CommentFormTests(TestCase):
         form_data = {
             "text": "тестовый комментарий, созданный в форме",
         }
-        response = CommentFormTests.user_auth.post(
+        response = self.user_auth.post(
             reverse(
                 "posts:add_comment",
                 kwargs={"post_id": CommentFormTests.post.pk},
@@ -161,7 +165,7 @@ class CommentFormTests(TestCase):
             data=form_data,
             follow=True,
         )
-        response_1 = CommentFormTests.user_auth.get(
+        response_1 = self.user_auth.get(
             reverse(
                 "posts:post_detail",
                 kwargs={"post_id": CommentFormTests.post.pk},
@@ -188,7 +192,7 @@ class CommentFormTests(TestCase):
     def test_create_comment_not_auth_user(self):
         """Неавторизованный клиент не может создать комментарий."""
 
-        response = CommentFormTests.user_not_auth.get(
+        response = self.user_not_auth.get(
             reverse(
                 "posts:add_comment",
                 kwargs={"post_id": CommentFormTests.post.pk},

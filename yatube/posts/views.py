@@ -35,17 +35,13 @@ def profile(request, username) -> None:
     paginator = Paginator(post_list.all(), POST_PER_PAGES)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
-    if str(request.user) == username:
+    if request.user == author:
         owner = 1
     else:
         owner = 0
-    if request.user.is_authenticated:
-        following = Follow.objects.filter(
-            user=request.user,
-            author=author,
-        )
-    else:
-        following = 0
+    following = (
+        request.user.is_authenticated and Follow.objects.filter(
+            user=request.user, author=author).exists())
     context = {
         "page_obj": page_obj,
         "post_count": post_count,
